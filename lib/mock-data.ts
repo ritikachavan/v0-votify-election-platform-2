@@ -476,6 +476,97 @@ export const kpiStats = {
   totalRecords: ledgerRecords.length,
 }
 
+// -- Voter Activity (for Booth Activity module) ----------------------------
+export type GeofenceStatus = "inside" | "outside"
+export type VoterFlag = "duplicate" | "outside_geofence" | "rapid_entry" | null
+
+export interface VoterActivity {
+  id: string
+  voterId: string       // masked: ****1234
+  boothId: string
+  boothName: string
+  timestamp: string
+  imageUrl: string
+  latitude: number
+  longitude: number
+  geofenceStatus: GeofenceStatus
+  flag: VoterFlag
+  verified: boolean
+}
+
+function generateVoterActivities(): VoterActivity[] {
+  const activityRng = createRng(999) // separate seed for this dataset
+  const entries: VoterActivity[] = []
+  const usedVoterIds = new Set<string>()
+  let entryNum = 1
+
+  // Generate 8 booths worth of activity (first 8 booths)
+  const targetBooths = booths.slice(0, 8)
+
+  for (const booth of targetBooths) {
+    const count = 12 + Math.floor(activityRng() * 8) // 12-19 entries per booth
+
+    for (let i = 0; i < count; i++) {
+      const ts = new Date(BASE_TS - Math.floor(activityRng() * 360) * 60 * 1000)
+
+      // Generate a 4-digit suffix
+      const suffix = String(1000 + Math.floor(activityRng() * 9000))
+      let voterId = `****${suffix}`
+
+      // 5% chance of duplicate voter (suspicious)
+      let flag: VoterFlag = null
+      if (activityRng() < 0.05 && usedVoterIds.size > 0) {
+        const arr = Array.from(usedVoterIds)
+        voterId = arr[Math.floor(activityRng() * arr.length)]
+        flag = "duplicate"
+      }
+      usedVoterIds.add(voterId)
+
+      // Location based on booth + small offset
+      const lat = booth.latitude + (activityRng() - 0.5) * 0.01
+      const lng = booth.longitude + (activityRng() - 0.5) * 0.01
+
+      // 8% chance outside geofence
+      let geofenceStatus: GeofenceStatus = "inside"
+      if (flag !== "duplicate" && activityRng() < 0.08) {
+        geofenceStatus = "outside"
+        flag = "outside_geofence"
+      }
+
+      // 4% chance of rapid entry
+      if (flag === null && activityRng() < 0.04) {
+        flag = "rapid_entry"
+      }
+
+      entries.push({
+        id: `VA-${String(entryNum).padStart(5, "0")}`,
+        voterId,
+        boothId: booth.id,
+        boothName: booth.name,
+        timestamp: ts.toISOString(),
+        imageUrl: `/api/placeholder/${60 + Math.floor(activityRng() * 4)}`,
+        latitude: lat,
+        longitude: lng,
+        geofenceStatus,
+        flag,
+        verified: flag === null,
+      })
+      entryNum++
+    }
+  }
+
+  // sort by timestamp desc
+  entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  return entries
+}
+
+export const voterActivities: VoterActivity[] = generateVoterActivities()
+
+// Booths that have voter activity data
+export const activityBooths = [...new Set(voterActivities.map((v) => v.boothId))].map(
+  (id) => booths.find((b) => b.id === id)!
+)
+
 // -- State-level stats (for heatmap) ----------------------------------------
 export const stateStats = states.map((state) => {
   const stateBooths = booths.filter((b) => b.state === state)

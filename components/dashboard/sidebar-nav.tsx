@@ -10,6 +10,7 @@ import {
   Globe,
   Map,
   ShieldCheck,
+  ScanEye,
 } from "lucide-react"
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const mainNav = [
   { title: "Booth Monitoring", href: "/dashboard/booths", icon: MapPin },
   { title: "Alerts", href: "/dashboard/alerts", icon: AlertTriangle },
   { title: "Ledger", href: "/dashboard/ledger", icon: BookOpen },
+  { title: "Booth Activity", href: "/dashboard/booth-activity", icon: ScanEye },
 ]
 
 const publicNav = [
