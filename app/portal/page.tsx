@@ -22,6 +22,7 @@ import {
   ledgerRecords,
   stateStats,
 } from "@/lib/mock-data"
+import { formatNumber } from "@/lib/format"
 
 export default function PublicPortalPage() {
   const [verifyInput, setVerifyInput] = useState("")
@@ -73,7 +74,7 @@ export default function PublicPortalPage() {
                 Total Votes
               </p>
               <p className="font-mono text-2xl font-bold tabular-nums text-card-foreground">
-                {kpiStats.totalVotes.toLocaleString()}
+                {formatNumber(kpiStats.totalVotes)}
               </p>
             </div>
           </CardContent>
@@ -147,7 +148,7 @@ export default function PublicPortalPage() {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-sm font-bold tabular-nums text-card-foreground">
-                    {candidate.votes.toLocaleString()}
+                    {formatNumber(candidate.votes)}
                   </span>
                   <span className="ml-2 font-mono text-xs text-muted-foreground">
                     ({candidate.percentage}%)
@@ -188,7 +189,7 @@ export default function PublicPortalPage() {
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>
-                    {state.totalVotes.toLocaleString()} votes
+                    {formatNumber(state.totalVotes)} votes
                   </span>
                   {state.highRiskBooths > 0 && (
                     <Badge

@@ -30,6 +30,7 @@ import {
   generateBoothLogs,
   ledgerRecords,
 } from "@/lib/mock-data"
+import { formatNumber } from "@/lib/format"
 import { format } from "date-fns"
 
 interface BoothDetailPageProps {
@@ -85,7 +86,7 @@ export default async function BoothDetailPage({ params }: BoothDetailPageProps) 
             <div>
               <p className="text-xs text-muted-foreground">Total Votes</p>
               <p className="font-mono text-lg font-bold tabular-nums text-card-foreground">
-                {booth.totalVotes.toLocaleString()}
+                {formatNumber(booth.totalVotes)}
               </p>
             </div>
           </CardContent>
@@ -101,7 +102,7 @@ export default async function BoothDetailPage({ params }: BoothDetailPageProps) 
             </div>
             <Progress value={turnout} className="mt-2 h-2" />
             <p className="mt-1 text-xs text-muted-foreground">
-              of {booth.expectedVotes.toLocaleString()} expected
+              of {formatNumber(booth.expectedVotes)} expected
             </p>
           </CardContent>
         </Card>

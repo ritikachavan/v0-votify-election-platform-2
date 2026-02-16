@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { stateStats, regionStats, booths } from "@/lib/mock-data"
 import { BoothStatusBadge } from "@/components/dashboard/booth-status-badge"
 import { RiskBadge } from "@/components/dashboard/risk-badge"
+import { formatNumber } from "@/lib/format"
 
 type DrillLevel = "state" | "district" | "booth"
 
@@ -174,7 +175,7 @@ export default function HeatmapPage() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Turnout</span>
                       <span className="font-mono text-card-foreground">
-                        {state.totalVotes.toLocaleString()} votes
+                        {formatNumber(state.totalVotes)} votes
                       </span>
                     </div>
                     <Progress value={state.turnoutPercentage} className="h-2" />
@@ -237,7 +238,7 @@ export default function HeatmapPage() {
                       className="h-1.5"
                     />
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{district.totalVotes.toLocaleString()} votes</span>
+                      <span>{formatNumber(district.totalVotes)} votes</span>
                       <span>
                         {district.activeBooths}/{district.totalBooths} online
                       </span>
@@ -301,12 +302,12 @@ export default function HeatmapPage() {
                       <Progress value={turnout} className="h-1.5" />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          {booth.totalVotes.toLocaleString()}/
-                          {booth.expectedVotes.toLocaleString()}
+                          {formatNumber(booth.totalVotes)}/
+                          {formatNumber(booth.expectedVotes)}
                         </span>
                         <span>
                           <TrendingUp className="mr-1 inline h-3 w-3" />
-                          {booth.totalVotes.toLocaleString()} votes
+                          {formatNumber(booth.totalVotes)} votes
                         </span>
                       </div>
                     </div>
