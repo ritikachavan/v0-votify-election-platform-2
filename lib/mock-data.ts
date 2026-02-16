@@ -496,6 +496,88 @@ export const stateStats = states.map((state) => {
 })
 
 // ---------------------------------------------------------------------------
+// Full Voter Registry (for Voter Lookup page) – deterministic
+// ---------------------------------------------------------------------------
+export interface RegisteredVoter {
+  id: string
+  voterId: string
+  name: string
+  age: number
+  gender: "Male" | "Female"
+  address: string
+  constituency: string
+  boothId: string
+  boothName: string
+  state: string
+  district: string
+  hasVoted: boolean
+  voteTimestamp: string | null
+  serialNumber: number
+  fatherOrHusbandName: string
+  epicNumber: string
+}
+
+const maleFirstNames = ["Amit","Rahul","Vikram","Suresh","Mohan","Rakesh","Arun","Vijay","Sanjay","Ramesh","Deepak","Manoj","Kiran","Arjun","Nikhil","Ravi","Ajay","Sachin","Gaurav","Rohit"]
+const femaleFirstNames = ["Priya","Sunita","Anita","Kavita","Deepa","Meera","Geeta","Nandini","Pooja","Lakshmi","Sneha","Anjali","Rekha","Seema","Neha","Swati","Divya","Sapna","Renu","Aarti"]
+const registryLastNames = ["Sharma","Patel","Singh","Kumar","Desai","Mehta","Reddy","Nair","Gupta","Joshi","Iyer","Rao","Malhotra","Chauhan","Das","Pillai","Verma","Yadav","Bhat","Kulkarni","Chopra","Banerjee","Mishra","Saxena","Thakur"]
+const streets = ["MG Road","Gandhi Nagar","Station Road","Temple Street","Market Lane","Lake View","Park Avenue","Hill Colony","River Side","Old Town","New Colony","Phase 1","Sector 4","Block B","Ward 12"]
+
+function buildVoterRegistry(): RegisteredVoter[] {
+  const voters: RegisteredVoter[] = []
+  let serial = 1
+
+  for (let bIdx = 0; bIdx < booths.length; bIdx++) {
+    const booth = booths[bIdx]
+    // 20 voters per booth for demonstration (1500 total across 75 booths)
+    const voterCount = 20
+    const votedCount = Math.round(voterCount * (booth.totalVotes / booth.expectedVotes))
+
+    for (let i = 0; i < voterCount; i++) {
+      const isMale = (bIdx + i) % 3 !== 0 // ~2/3 male
+      const fnIdx = isMale
+        ? (bIdx * 7 + i * 3) % maleFirstNames.length
+        : (bIdx * 5 + i * 4) % femaleFirstNames.length
+      const lnIdx = (bIdx * 11 + i * 7) % registryLastNames.length
+      const fatherLnIdx = (bIdx * 13 + i * 9) % registryLastNames.length
+      const fatherFnIdx = (bIdx * 3 + i * 11) % maleFirstNames.length
+      const streetIdx = (bIdx * 4 + i * 6) % streets.length
+      const houseNum = 10 + ((bIdx * 17 + i * 29) % 490)
+      const age = 21 + ((bIdx * 3 + i * 7) % 55)
+      const hasVoted = i < votedCount
+      const minutesBefore = hasVoted ? 10 + ((i * 17 + bIdx * 3) % 340) : 0
+      const voteTimestamp = hasVoted ? new Date(BASE_TS - minutesBefore * 60 * 1000).toISOString() : null
+
+      const firstName = isMale ? maleFirstNames[fnIdx] : femaleFirstNames[fnIdx]
+      const lastName = registryLastNames[lnIdx]
+      const epicSuffix = String(10000000 + serial * 7919).slice(-7)
+
+      voters.push({
+        id: `REG-${String(serial).padStart(5, "0")}`,
+        voterId: `IND/${booth.state.slice(0, 3).toUpperCase()}/${epicSuffix}`,
+        name: `${firstName} ${lastName}`,
+        age,
+        gender: isMale ? "Male" : "Female",
+        address: `${houseNum}, ${streets[streetIdx]}, ${booth.district}`,
+        constituency: booth.region,
+        boothId: booth.id,
+        boothName: booth.name,
+        state: booth.state,
+        district: booth.district,
+        hasVoted,
+        voteTimestamp,
+        serialNumber: serial,
+        fatherOrHusbandName: `${maleFirstNames[fatherFnIdx]} ${registryLastNames[fatherLnIdx]}`,
+        epicNumber: `${booth.state.slice(0, 3).toUpperCase()}${epicSuffix}`,
+      })
+      serial++
+    }
+  }
+  return voters
+}
+
+export const voterRegistry: RegisteredVoter[] = buildVoterRegistry()
+
+// ---------------------------------------------------------------------------
 // Assigned Voters (for Booth Locator) – deterministic from booth index
 // ---------------------------------------------------------------------------
 export interface AssignedVoter {

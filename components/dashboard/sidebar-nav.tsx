@@ -11,6 +11,7 @@ import {
   Map,
   ShieldCheck,
   ScanEye,
+  UserSearch,
 } from "lucide-react"
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const mainNav = [
   { title: "Alerts", href: "/dashboard/alerts", icon: AlertTriangle },
   { title: "Ledger", href: "/dashboard/ledger", icon: BookOpen },
   { title: "Booth Activity", href: "/dashboard/booth-activity", icon: ScanEye },
+  { title: "Voter Lookup", href: "/dashboard/voter-lookup", icon: UserSearch },
 ]
 
 const publicNav = [
