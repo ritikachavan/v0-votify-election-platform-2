@@ -12,6 +12,9 @@ import {
   ShieldCheck,
   ScanEye,
   UserSearch,
+  BarChart3,
+  Cpu,
+  FileBarChart,
 } from "lucide-react"
 import {
   Sidebar,
@@ -34,6 +37,9 @@ const mainNav = [
   { title: "Ledger", href: "/dashboard/ledger", icon: BookOpen },
   { title: "Booth Activity", href: "/dashboard/booth-activity", icon: ScanEye },
   { title: "Voter Lookup", href: "/dashboard/voter-lookup", icon: UserSearch },
+  { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { title: "EVM Audit", href: "/dashboard/evm-audit", icon: Cpu },
+  { title: "Reports", href: "/dashboard/reports", icon: FileBarChart },
 ]
 
 const publicNav = [

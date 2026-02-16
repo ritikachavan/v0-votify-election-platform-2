@@ -587,6 +587,171 @@ export interface AssignedVoter {
 const firstNames = ["Amit","Priya","Rahul","Sunita","Vikram","Anita","Suresh","Kavita","Mohan","Deepa","Rakesh","Meera","Arun","Geeta","Vijay","Nandini","Sanjay","Pooja","Ramesh","Lakshmi"]
 const lastNames = ["Sharma","Patel","Singh","Kumar","Desai","Mehta","Reddy","Nair","Gupta","Joshi","Iyer","Rao","Malhotra","Chauhan","Das","Pillai","Verma","Yadav","Bhat","Kulkarni"]
 
+// ---------------------------------------------------------------------------
+// EVM Audit Trail – deterministic hardware diagnostics
+// ---------------------------------------------------------------------------
+export type EvmStatus = "operational" | "warning" | "faulty" | "replaced"
+
+export interface EvmDevice {
+  id: string
+  serialNumber: string
+  boothId: string
+  boothName: string
+  state: string
+  model: string
+  firmwareVersion: string
+  status: EvmStatus
+  batteryLevel: number
+  temperature: number
+  totalVotesRecorded: number
+  lastCalibration: string
+  sealIntact: boolean
+  vvpatSynced: boolean
+  uptimeMinutes: number
+}
+
+export interface EvmAuditEvent {
+  id: string
+  evmId: string
+  timestamp: string
+  event: string
+  severity: "info" | "warning" | "error"
+  details: string
+}
+
+function buildEvmDevices(): EvmDevice[] {
+  const models = ["BEL M3", "ECIL Mark II", "BEL M3+", "ECIL Mark III"]
+  const firmwares = ["v4.2.1", "v4.3.0", "v4.1.8", "v4.3.2"]
+  const devices: EvmDevice[] = []
+
+  for (let i = 0; i < booths.length; i++) {
+    const booth = booths[i]
+    const statusIdx = booth.status === "offline" ? 2 : booth.riskLevel === "high" ? 1 : booth.riskLevel === "medium" ? (i % 5 === 0 ? 1 : 0) : 0
+    const evmStatuses: EvmStatus[] = ["operational", "warning", "faulty", "replaced"]
+    const battery = booth.status === "offline" ? 8 + (i % 12) : 45 + ((i * 7) % 55)
+    const temp = 28 + ((i * 3) % 18)
+
+    devices.push({
+      id: `EVM-${String(i + 1).padStart(4, "0")}`,
+      serialNumber: `SN${String(200000 + i * 1031).slice(-6)}`,
+      boothId: booth.id,
+      boothName: booth.name,
+      state: booth.state,
+      model: models[i % models.length],
+      firmwareVersion: firmwares[i % firmwares.length],
+      status: evmStatuses[statusIdx],
+      batteryLevel: battery,
+      temperature: temp,
+      totalVotesRecorded: booth.totalVotes,
+      lastCalibration: new Date(BASE_TS - (24 + (i % 48)) * 60 * 60 * 1000).toISOString(),
+      sealIntact: statusIdx < 2,
+      vvpatSynced: statusIdx === 0,
+      uptimeMinutes: 180 + ((i * 13) % 420),
+    })
+  }
+  return devices
+}
+
+export const evmDevices: EvmDevice[] = buildEvmDevices()
+
+function buildEvmAuditEvents(): EvmAuditEvent[] {
+  const events: EvmAuditEvent[] = []
+  const infoEvents = ["System health check passed", "Vote batch recorded", "Data synced to server", "Seal integrity verified", "VVPAT slip printed"]
+  const warnEvents = ["Battery below 30%", "Temperature above 40C", "Sync delayed by 5+ minutes", "Firmware update available"]
+  const errorEvents = ["Communication lost", "VVPAT mismatch detected", "Tamper alert triggered", "Calibration drift detected"]
+  let idx = 1
+
+  for (let d = 0; d < Math.min(evmDevices.length, 20); d++) {
+    const dev = evmDevices[d]
+    const eventCount = 6 + (d % 4)
+    for (let e = 0; e < eventCount; e++) {
+      const minutesAgo = (d * 11 + e * 19 + 3) % 300
+      const isWarn = dev.status === "warning" && e < 2
+      const isError = dev.status === "faulty" && e === 0
+      const severity: "info" | "warning" | "error" = isError ? "error" : isWarn ? "warning" : "info"
+      const eventList = severity === "error" ? errorEvents : severity === "warning" ? warnEvents : infoEvents
+      const event = eventList[(d + e) % eventList.length]
+
+      events.push({
+        id: `AUD-${String(idx).padStart(5, "0")}`,
+        evmId: dev.id,
+        timestamp: new Date(BASE_TS - minutesAgo * 60 * 1000).toISOString(),
+        event,
+        severity,
+        details: `${event} on ${dev.id} (${dev.serialNumber}) at ${dev.boothName}`,
+      })
+      idx++
+    }
+  }
+
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  return events
+}
+
+export const evmAuditEvents: EvmAuditEvent[] = buildEvmAuditEvents()
+
+// ---------------------------------------------------------------------------
+// Election Analytics – vote velocity, candidate race tracker
+// ---------------------------------------------------------------------------
+export interface VoteVelocity {
+  hour: string
+  velocity: number     // votes per minute
+  acceleration: number // change vs previous
+}
+
+export const voteVelocity: VoteVelocity[] = (() => {
+  const raw: [string, number][] = [
+    ["07:00", 720], ["08:00", 1975], ["09:00", 4613], ["10:00", 6307],
+    ["11:00", 6970], ["12:00", 5143], ["13:00", 4138], ["14:00", 5635],
+    ["15:00", 6275], ["16:00", 5815], ["17:00", 4790], ["18:00", 2970],
+  ]
+  return raw.map(([hour, velocity], i) => ({
+    hour,
+    velocity,
+    acceleration: i === 0 ? 0 : velocity - raw[i - 1][1],
+  }))
+})()
+
+export interface CandidateRacePoint {
+  hour: string
+  [candidateName: string]: string | number
+}
+
+export const candidateRaceData: CandidateRacePoint[] = (() => {
+  // cumulative vote share over time for top 4 candidates
+  const shares: Record<string, number[]> = {
+    "Arvind Sharma": [33, 34, 35, 34, 34, 33, 34, 34, 35, 34, 34, 34],
+    "Priya Mehta": [28, 29, 30, 30, 31, 31, 30, 30, 30, 30, 30, 30],
+    "Rajesh Kumar": [22, 21, 20, 20, 19, 20, 20, 20, 19, 20, 20, 20],
+    "Sunita Desai": [12, 11, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11],
+  }
+  const hours = ["07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"]
+  return hours.map((hour, i) => {
+    const point: CandidateRacePoint = { hour }
+    for (const name of Object.keys(shares)) {
+      point[name] = shares[name][i]
+    }
+    return point
+  })
+})()
+
+export interface StateTurnoutComparison {
+  state: string
+  current: number
+  previous: number
+  delta: number
+}
+
+export const stateTurnoutComparison: StateTurnoutComparison[] = stateStats.map((s, i) => {
+  const previous = s.turnoutPercentage - ([-3, 5, -2, 7, -1][i] ?? 0)
+  return {
+    state: s.name,
+    current: s.turnoutPercentage,
+    previous,
+    delta: s.turnoutPercentage - previous,
+  }
+})
+
 export function getAssignedVoters(boothId: string): AssignedVoter[] {
   const booth = booths.find((b) => b.id === boothId)
   if (!booth) return []
