@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BoothStatusBadge } from "@/components/dashboard/booth-status-badge"
 import { RiskBadge } from "@/components/dashboard/risk-badge"
 import { booths } from "@/lib/mock-data"
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 
 const PAGE_SIZE = 12
 
@@ -166,9 +166,7 @@ export default function BoothsPage() {
                       <BoothStatusBadge status={booth.status} />
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(booth.lastSync), {
-                        addSuffix: true,
-                      })}
+                      {format(new Date(booth.lastSync), "HH:mm:ss")}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs text-foreground">
                       {booth.totalVotes.toLocaleString()}

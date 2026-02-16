@@ -1,7 +1,24 @@
 // =============================================================================
-// Votify - Comprehensive Election Mock Data
+// Votify - Comprehensive Election Mock Data (Deterministic / SSR-safe)
 // =============================================================================
 
+// -- Seeded PRNG (Mulberry32) – same output on server & client ---------------
+function createRng(seed: number) {
+  let s = seed | 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const rng = createRng(42) // fixed seed
+
+// Fixed base timestamp (2026-02-16 10:00 UTC) so Date.now() is never called
+const BASE_TS = Date.UTC(2026, 1, 16, 10, 0, 0)
+
+// ---------------------------------------------------------------------------
 export type BoothStatus = "online" | "offline" | "delayed"
 export type RiskLevel = "low" | "medium" | "high"
 export type AlertSeverity = "low" | "medium" | "high" | "critical"
@@ -119,25 +136,25 @@ function generateBooths(): Booth[] {
 
   for (const state of states) {
     for (const region of regions[state]) {
-      const count = 2 + Math.floor(Math.random() * 2) // 2-3 booths per region
+      const count = 2 + Math.floor(rng() * 2) // 2-3 booths per region
       for (let i = 0; i < count; i++) {
-        const statusRoll = Math.random()
+        const statusRoll = rng()
         const status: BoothStatus =
           statusRoll > 0.15 ? "online" : statusRoll > 0.05 ? "delayed" : "offline"
-        const riskRoll = Math.random()
+        const riskRoll = rng()
         const riskLevel: RiskLevel =
           riskRoll > 0.2 ? "low" : riskRoll > 0.07 ? "medium" : "high"
-        const totalVotes = 800 + Math.floor(Math.random() * 1600)
-        const expectedVotes = 2000 + Math.floor(Math.random() * 1000)
+        const totalVotes = 800 + Math.floor(rng() * 1600)
+        const expectedVotes = 2000 + Math.floor(rng() * 1000)
 
         const minutesAgo =
           status === "online"
-            ? Math.floor(Math.random() * 5)
+            ? Math.floor(rng() * 5)
             : status === "delayed"
-              ? 15 + Math.floor(Math.random() * 30)
-              : 60 + Math.floor(Math.random() * 120)
+              ? 15 + Math.floor(rng() * 30)
+              : 60 + Math.floor(rng() * 120)
 
-        const syncDate = new Date(Date.now() - minutesAgo * 60 * 1000)
+        const syncDate = new Date(BASE_TS - minutesAgo * 60 * 1000)
 
         booths.push({
           id: `BTH-${String(boothNum).padStart(4, "0")}`,
@@ -150,8 +167,8 @@ function generateBooths(): Booth[] {
           totalVotes,
           expectedVotes,
           riskLevel,
-          latitude: 8 + Math.random() * 28,
-          longitude: 68 + Math.random() * 29,
+          latitude: 8 + rng() * 28,
+          longitude: 68 + rng() * 29,
           officerName: `Officer ${boothNum}`,
           officerContact: `+91 98765 ${String(10000 + boothNum).slice(1)}`,
         })
@@ -185,7 +202,7 @@ export const hourlyVoteTrend: HourlyVote[] = (() => {
       hour === "16:00" ? 350000 :
       hour === "17:00" ? 290000 :
       180000
-    const votes = baseVotes + Math.floor(Math.random() * 40000 - 20000)
+    const votes = baseVotes + Math.floor(rng() * 40000 - 20000)
     cumulative += votes
     return { hour, votes, cumulative }
   })
@@ -200,7 +217,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0003",
     boothName: "Pune Booth 1",
     region: "Pune",
-    timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 8 * 60 * 1000).toISOString(),
     title: "Unusual Vote Spike Detected",
     description: "AI detected 340% vote increase in 15-min window. Pattern consistent with ballot stuffing. Immediate review recommended.",
     resolved: false,
@@ -213,7 +230,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0012",
     boothName: "Varanasi Booth 2",
     region: "Varanasi",
-    timestamp: new Date(Date.now() - 22 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 22 * 60 * 1000).toISOString(),
     title: "EVM Communication Lost",
     description: "Electronic Voting Machine has not responded for 18 minutes. Hardware failure or tampering suspected.",
     resolved: false,
@@ -225,7 +242,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0007",
     boothName: "Chennai North Booth 1",
     region: "Chennai North",
-    timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 35 * 60 * 1000).toISOString(),
     title: "Statistical Deviation in Vote Pattern",
     description: "Vote distribution deviates 3.2 std deviations from regional average. Benford's Law analysis flagged anomaly.",
     resolved: false,
@@ -238,7 +255,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0019",
     boothName: "Ahmedabad Booth 1",
     region: "Ahmedabad",
-    timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 45 * 60 * 1000).toISOString(),
     title: "Data Sync Delay",
     description: "Booth data synchronization delayed by 42 minutes. Network connectivity intermittent.",
     resolved: false,
@@ -250,7 +267,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0025",
     boothName: "Mysuru Booth 2",
     region: "Mysuru",
-    timestamp: new Date(Date.now() - 62 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 62 * 60 * 1000).toISOString(),
     title: "Hash Chain Inconsistency",
     description: "Ledger record hash does not match expected chain. Data re-verification in progress.",
     resolved: false,
@@ -262,7 +279,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0031",
     boothName: "Coimbatore Booth 1",
     region: "Coimbatore",
-    timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 90 * 60 * 1000).toISOString(),
     title: "Minor Turnout Fluctuation",
     description: "Slight above-average turnout detected in early morning hours. Within acceptable threshold.",
     resolved: true,
@@ -275,7 +292,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0038",
     boothName: "Surat Booth 2",
     region: "Surat",
-    timestamp: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 120 * 60 * 1000).toISOString(),
     title: "Printer Malfunction",
     description: "VVPAT printer reported paper jam. Resolved by on-site engineer.",
     resolved: true,
@@ -287,7 +304,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0042",
     boothName: "Noida Booth 1",
     region: "Noida",
-    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 15 * 60 * 1000).toISOString(),
     title: "Duplicate Voter ID Attempt",
     description: "Multiple voting attempts detected using the same voter ID within 10-minute window. Biometric mismatch flagged.",
     resolved: false,
@@ -300,7 +317,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0015",
     boothName: "Lucknow Booth 1",
     region: "Lucknow",
-    timestamp: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 55 * 60 * 1000).toISOString(),
     title: "Intermittent Connectivity",
     description: "Booth experiencing periodic network drops. Data batching enabled for resilience.",
     resolved: false,
@@ -312,7 +329,7 @@ export const alerts: Alert[] = [
     boothId: "BTH-0008",
     boothName: "Chennai South Booth 1",
     region: "Chennai South",
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    timestamp: new Date(BASE_TS - 5 * 60 * 1000).toISOString(),
     title: "Ledger Tampering Suspected",
     description: "Multiple consecutive hash chain breaks detected. Possible data manipulation. Forensic audit initiated.",
     resolved: false,
@@ -328,12 +345,12 @@ function generateLedgerRecords(): LedgerRecord[] {
   for (let i = 0; i < 40; i++) {
     const boothIndex = i % booths.length
     const booth = booths[boothIndex]
-    const ts = new Date(Date.now() - (40 - i) * 3 * 60 * 1000)
-    const voteCount = 10 + Math.floor(Math.random() * 30)
+    const ts = new Date(BASE_TS - (40 - i) * 3 * 60 * 1000)
+    const voteCount = 10 + Math.floor(rng() * 30)
 
     const hash = generateHash(i)
     const dataHash = generateHash(i + 1000)
-    const verified = Math.random() > 0.05 // 95% verified
+    const verified = rng() > 0.05 // 95% verified
 
     records.push({
       id: `REC-${String(i + 1).padStart(5, "0")}`,
@@ -367,51 +384,59 @@ function generateHash(seed: number): string {
 export const ledgerRecords: LedgerRecord[] = generateLedgerRecords()
 
 // -- Region Stats ------------------------------------------------------------
-export const regionStats: RegionStats[] = states.flatMap((state) =>
-  regions[state].map((region) => {
-    const regionBooths = booths.filter((b) => b.region === region)
-    const totalVotes = regionBooths.reduce((s, b) => s + b.totalVotes, 0)
-    const expectedVotes = regionBooths.reduce((s, b) => s + b.expectedVotes, 0)
-    const activeBooths = regionBooths.filter((b) => b.status === "online").length
+export const regionStats: RegionStats[] = (() => {
+  // Use deterministic assignment – cycle through top 3 candidates per region
+  let idx = 0
+  return states.flatMap((state) =>
+    regions[state].map((region) => {
+      const regionBooths = booths.filter((b) => b.region === region)
+      const totalVotes = regionBooths.reduce((s, b) => s + b.totalVotes, 0)
+      const expectedVotes = regionBooths.reduce((s, b) => s + b.expectedVotes, 0)
+      const activeBooths = regionBooths.filter((b) => b.status === "online").length
+      const cIdx = idx % 3
+      idx++
 
-    return {
-      name: region,
-      state,
-      totalBooths: regionBooths.length,
-      activeBooths,
-      totalVotes,
-      expectedVotes,
-      turnoutPercentage: Math.round((totalVotes / expectedVotes) * 100),
-      leadingCandidate: candidates[Math.floor(Math.random() * 3)].name,
-      leadingParty: candidates[Math.floor(Math.random() * 3)].party,
-    }
-  })
-)
+      return {
+        name: region,
+        state,
+        totalBooths: regionBooths.length,
+        activeBooths,
+        totalVotes,
+        expectedVotes,
+        turnoutPercentage: Math.round((totalVotes / expectedVotes) * 100),
+        leadingCandidate: candidates[cIdx].name,
+        leadingParty: candidates[cIdx].party,
+      }
+    })
+  )
+})()
 
-// -- Booth Logs (for detail page) -------------------------------------------
+// -- Booth Logs (for detail page) – deterministic ----------------------------
 export function generateBoothLogs(boothId: string): BoothLog[] {
   const logs: BoothLog[] = []
   const types: BoothLog["type"][] = ["vote", "sync", "system", "vote", "vote", "sync"]
 
+  const actions: Record<string, string[]> = {
+    vote: ["Batch recorded", "Vote verified", "VVPAT confirmed"],
+    sync: ["Data synced to server", "Acknowledgment received", "Checkpoint created"],
+    alert: ["Anomaly flagged", "Alert generated"],
+    system: ["Health check passed", "Integrity verified", "Connection stable"],
+  }
+
+  const seed = parseInt(boothId.replace(/\D/g, ""), 10) || 1
+
   for (let i = 0; i < 25; i++) {
-    const ts = new Date(Date.now() - (25 - i) * 7 * 60 * 1000)
+    const ts = new Date(BASE_TS - (25 - i) * 7 * 60 * 1000)
     const type = types[i % types.length]
-
-    const actions: Record<string, string[]> = {
-      vote: ["Batch recorded", "Vote verified", "VVPAT confirmed"],
-      sync: ["Data synced to server", "Acknowledgment received", "Checkpoint created"],
-      alert: ["Anomaly flagged", "Alert generated"],
-      system: ["Health check passed", "Integrity verified", "Connection stable"],
-    }
-
     const actionList = actions[type]
-    const action = actionList[Math.floor(Math.random() * actionList.length)]
+    // Deterministic action pick based on seed + index
+    const action = actionList[(seed + i) % actionList.length]
 
     logs.push({
       id: `LOG-${boothId}-${String(i + 1).padStart(3, "0")}`,
       timestamp: ts.toISOString(),
       action,
-      details: `${action} for booth ${boothId} at ${ts.toLocaleTimeString()}`,
+      details: `${action} for booth ${boothId} at ${ts.toISOString().slice(11, 19)}`,
       type,
     })
   }

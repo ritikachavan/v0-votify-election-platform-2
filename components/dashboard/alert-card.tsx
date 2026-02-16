@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { SeverityBadge } from "./severity-badge"
 import { cn } from "@/lib/utils"
 import type { Alert } from "@/lib/mock-data"
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 
 const typeIcons: Record<string, typeof AlertTriangle> = {
   anomaly: AlertTriangle,
@@ -85,7 +85,7 @@ export function AlertCard({ alert, compact = false }: AlertCardProps) {
               </>
             )}
             <span className="ml-auto">
-              {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
+              {format(new Date(alert.timestamp), "HH:mm")}
             </span>
           </div>
         </div>

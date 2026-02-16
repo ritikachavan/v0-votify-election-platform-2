@@ -30,7 +30,7 @@ import {
   generateBoothLogs,
   ledgerRecords,
 } from "@/lib/mock-data"
-import { format, formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 
 interface BoothDetailPageProps {
   params: Promise<{ id: string }>
@@ -114,9 +114,7 @@ export default async function BoothDetailPage({ params }: BoothDetailPageProps) 
             <div>
               <p className="text-xs text-muted-foreground">Last Sync</p>
               <p className="text-sm font-medium text-card-foreground">
-                {formatDistanceToNow(new Date(booth.lastSync), {
-                  addSuffix: true,
-                })}
+                {format(new Date(booth.lastSync), "HH:mm:ss")}
               </p>
             </div>
           </CardContent>
