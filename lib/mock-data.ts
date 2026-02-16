@@ -2,7 +2,7 @@
 // Votify - Comprehensive Election Mock Data (Deterministic / SSR-safe)
 // =============================================================================
 
-// -- Seeded PRNG (Mulberry32) – same output on server & client ---------------
+// -- Seeded PRNG (Mulberry32) -- same output on server & client ---------------
 function createRng(seed: number) {
   let s = seed | 0
   return () => {
@@ -12,8 +12,6 @@ function createRng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-
-const rng = createRng(42) // fixed seed
 
 // Fixed base timestamp (2026-02-16 10:00 UTC) so Date.now() is never called
 const BASE_TS = Date.UTC(2026, 1, 16, 10, 0, 0)
@@ -120,7 +118,7 @@ const regions: Record<string, string[]> = {
   Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
 }
 
-// -- Candidates --------------------------------------------------------------
+// -- Candidates (static data, no RNG needed) ---------------------------------
 export const candidates: Candidate[] = [
   { id: "c1", name: "Arvind Sharma", party: "National Democratic Alliance", partyColor: "hsl(217, 91%, 60%)", votes: 1248760, percentage: 34.2 },
   { id: "c2", name: "Priya Mehta", party: "United Progressive Front", partyColor: "hsl(160, 84%, 39%)", votes: 1102340, percentage: 30.2 },
@@ -129,9 +127,10 @@ export const candidates: Candidate[] = [
   { id: "c5", name: "Others", party: "Various", partyColor: "hsl(215, 16%, 47%)", votes: 186430, percentage: 5.1 },
 ]
 
-// -- Booths ------------------------------------------------------------------
+// -- Booths (isolated RNG seed: 42) ------------------------------------------
 function generateBooths(): Booth[] {
-  const booths: Booth[] = []
+  const rng = createRng(42)
+  const result: Booth[] = []
   let boothNum = 1
 
   for (const state of states) {
@@ -156,7 +155,7 @@ function generateBooths(): Booth[] {
 
         const syncDate = new Date(BASE_TS - minutesAgo * 60 * 1000)
 
-        booths.push({
+        result.push({
           id: `BTH-${String(boothNum).padStart(4, "0")}`,
           name: `${region} Booth ${i + 1}`,
           region,
@@ -176,13 +175,14 @@ function generateBooths(): Booth[] {
       }
     }
   }
-  return booths
+  return result
 }
 
 export const booths: Booth[] = generateBooths()
 
-// -- Hourly Vote Trend -------------------------------------------------------
+// -- Hourly Vote Trend (isolated RNG seed: 100) ------------------------------
 export const hourlyVoteTrend: HourlyVote[] = (() => {
+  const rng = createRng(100)
   const hours = [
     "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
     "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
@@ -208,7 +208,7 @@ export const hourlyVoteTrend: HourlyVote[] = (() => {
   })
 })()
 
-// -- Alerts ------------------------------------------------------------------
+// -- Alerts (static data, no RNG needed) ------------------------------------
 export const alerts: Alert[] = [
   {
     id: "ALT-001",
@@ -337,8 +337,20 @@ export const alerts: Alert[] = [
   },
 ]
 
-// -- Ledger Records ----------------------------------------------------------
+// -- Ledger Records (isolated RNG seed: 200) --------------------------------
+function generateHash(seed: number): string {
+  const chars = "0123456789abcdef"
+  let hash = ""
+  let s = seed * 2654435761
+  for (let i = 0; i < 64; i++) {
+    s = ((s * 16807) + 12345) & 0x7fffffff
+    hash += chars[s % 16]
+  }
+  return hash
+}
+
 function generateLedgerRecords(): LedgerRecord[] {
+  const rng = createRng(200)
   const records: LedgerRecord[] = []
   let prevHash = "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -370,22 +382,10 @@ function generateLedgerRecords(): LedgerRecord[] {
   return records
 }
 
-function generateHash(seed: number): string {
-  const chars = "0123456789abcdef"
-  let hash = ""
-  let s = seed * 2654435761
-  for (let i = 0; i < 64; i++) {
-    s = ((s * 16807) + 12345) & 0x7fffffff
-    hash += chars[s % 16]
-  }
-  return hash
-}
-
 export const ledgerRecords: LedgerRecord[] = generateLedgerRecords()
 
-// -- Region Stats ------------------------------------------------------------
+// -- Region Stats (derived from booths -- no extra RNG) ----------------------
 export const regionStats: RegionStats[] = (() => {
-  // Use deterministic assignment – cycle through top 3 candidates per region
   let idx = 0
   return states.flatMap((state) =>
     regions[state].map((region) => {
@@ -411,7 +411,7 @@ export const regionStats: RegionStats[] = (() => {
   )
 })()
 
-// -- Booth Logs (for detail page) – deterministic ----------------------------
+// -- Booth Logs (for detail page) -- deterministic via boothId seed ----------
 export function generateBoothLogs(boothId: string): BoothLog[] {
   const logs: BoothLog[] = []
   const types: BoothLog["type"][] = ["vote", "sync", "system", "vote", "vote", "sync"]
@@ -429,7 +429,6 @@ export function generateBoothLogs(boothId: string): BoothLog[] {
     const ts = new Date(BASE_TS - (25 - i) * 7 * 60 * 1000)
     const type = types[i % types.length]
     const actionList = actions[type]
-    // Deterministic action pick based on seed + index
     const action = actionList[(seed + i) % actionList.length]
 
     logs.push({
@@ -443,7 +442,7 @@ export function generateBoothLogs(boothId: string): BoothLog[] {
   return logs
 }
 
-// -- Hourly votes for a specific booth (for detail chart) -------------------
+// -- Hourly votes for a specific booth (deterministic via boothId seed) ------
 export function generateBoothHourlyVotes(boothId: string): HourlyVote[] {
   const hours = [
     "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
@@ -460,7 +459,7 @@ export function generateBoothHourlyVotes(boothId: string): HourlyVote[] {
   })
 }
 
-// -- Summary KPI stats -------------------------------------------------------
+// -- Summary KPI stats (derived, no RNG) ------------------------------------
 export const kpiStats = {
   totalVotes: candidates.reduce((s, c) => s + c.votes, 0),
   activeBooths: booths.filter((b) => b.status === "online").length,
@@ -476,13 +475,13 @@ export const kpiStats = {
   totalRecords: ledgerRecords.length,
 }
 
-// -- Voter Activity (for Booth Activity module) ----------------------------
+// -- Voter Activity (isolated RNG seed: 999) --------------------------------
 export type GeofenceStatus = "inside" | "outside"
 export type VoterFlag = "duplicate" | "outside_geofence" | "rapid_entry" | null
 
 export interface VoterActivity {
   id: string
-  voterId: string       // masked: ****1234
+  voterId: string
   boothId: string
   boothName: string
   timestamp: string
@@ -495,46 +494,40 @@ export interface VoterActivity {
 }
 
 function generateVoterActivities(): VoterActivity[] {
-  const activityRng = createRng(999) // separate seed for this dataset
+  const rng = createRng(999)
   const entries: VoterActivity[] = []
   const usedVoterIds = new Set<string>()
   let entryNum = 1
 
-  // Generate 8 booths worth of activity (first 8 booths)
   const targetBooths = booths.slice(0, 8)
 
   for (const booth of targetBooths) {
-    const count = 12 + Math.floor(activityRng() * 8) // 12-19 entries per booth
+    const count = 12 + Math.floor(rng() * 8)
 
     for (let i = 0; i < count; i++) {
-      const ts = new Date(BASE_TS - Math.floor(activityRng() * 360) * 60 * 1000)
+      const ts = new Date(BASE_TS - Math.floor(rng() * 360) * 60 * 1000)
 
-      // Generate a 4-digit suffix
-      const suffix = String(1000 + Math.floor(activityRng() * 9000))
+      const suffix = String(1000 + Math.floor(rng() * 9000))
       let voterId = `****${suffix}`
 
-      // 5% chance of duplicate voter (suspicious)
       let flag: VoterFlag = null
-      if (activityRng() < 0.05 && usedVoterIds.size > 0) {
+      if (rng() < 0.05 && usedVoterIds.size > 0) {
         const arr = Array.from(usedVoterIds)
-        voterId = arr[Math.floor(activityRng() * arr.length)]
+        voterId = arr[Math.floor(rng() * arr.length)]
         flag = "duplicate"
       }
       usedVoterIds.add(voterId)
 
-      // Location based on booth + small offset
-      const lat = booth.latitude + (activityRng() - 0.5) * 0.01
-      const lng = booth.longitude + (activityRng() - 0.5) * 0.01
+      const lat = booth.latitude + (rng() - 0.5) * 0.01
+      const lng = booth.longitude + (rng() - 0.5) * 0.01
 
-      // 8% chance outside geofence
       let geofenceStatus: GeofenceStatus = "inside"
-      if (flag !== "duplicate" && activityRng() < 0.08) {
+      if (flag !== "duplicate" && rng() < 0.08) {
         geofenceStatus = "outside"
         flag = "outside_geofence"
       }
 
-      // 4% chance of rapid entry
-      if (flag === null && activityRng() < 0.04) {
+      if (flag === null && rng() < 0.04) {
         flag = "rapid_entry"
       }
 
@@ -544,7 +537,7 @@ function generateVoterActivities(): VoterActivity[] {
         boothId: booth.id,
         boothName: booth.name,
         timestamp: ts.toISOString(),
-        imageUrl: `/api/placeholder/${60 + Math.floor(activityRng() * 4)}`,
+        imageUrl: `/api/placeholder/${60 + Math.floor(rng() * 4)}`,
         latitude: lat,
         longitude: lng,
         geofenceStatus,
@@ -555,19 +548,17 @@ function generateVoterActivities(): VoterActivity[] {
     }
   }
 
-  // sort by timestamp desc
   entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   return entries
 }
 
 export const voterActivities: VoterActivity[] = generateVoterActivities()
 
-// Booths that have voter activity data
 export const activityBooths = [...new Set(voterActivities.map((v) => v.boothId))].map(
   (id) => booths.find((b) => b.id === id)!
 )
 
-// -- State-level stats (for heatmap) ----------------------------------------
+// -- State-level stats (derived from booths, no extra RNG) -------------------
 export const stateStats = states.map((state) => {
   const stateBooths = booths.filter((b) => b.state === state)
   const totalVotes = stateBooths.reduce((s, b) => s + b.totalVotes, 0)
