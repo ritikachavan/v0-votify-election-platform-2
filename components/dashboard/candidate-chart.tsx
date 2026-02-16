@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatNumber } from "@/lib/format"
 import type { Candidate } from "@/lib/mock-data"
 
 interface CandidateChartProps {
@@ -67,7 +68,7 @@ export function CandidateChart({ data }: CandidateChartProps) {
                 fontSize: "12px",
               }}
               formatter={(value: number, _name: string, props: { payload: { fullName: string; party: string; percentage: number } }) => [
-                `${value.toLocaleString()} votes (${props.payload.percentage}%)`,
+                `${formatNumber(value)} votes (${props.payload.percentage}%)`,
                 props.payload.fullName,
               ]}
               labelFormatter={() => ""}

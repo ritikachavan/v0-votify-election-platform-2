@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { formatNumber } from "@/lib/format"
 import type { LucideIcon } from "lucide-react"
 
 interface KpiCardProps {
@@ -34,7 +35,7 @@ export function KpiCard({
             {title}
           </p>
           <p className="font-mono text-2xl font-bold tabular-nums text-card-foreground">
-            {typeof value === "number" ? value.toLocaleString() : value}
+            {typeof value === "number" ? formatNumber(value) : value}
           </p>
           {subtitle && (
             <p className="text-xs text-muted-foreground">{subtitle}</p>

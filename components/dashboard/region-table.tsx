@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { formatNumber } from "@/lib/format"
 import type { RegionStats } from "@/lib/mock-data"
 
 interface RegionTableProps {
@@ -53,7 +54,7 @@ export function RegionTable({ data, limit }: RegionTableProps) {
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-foreground">
-                    {region.totalVotes.toLocaleString()}
+                    {formatNumber(region.totalVotes)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

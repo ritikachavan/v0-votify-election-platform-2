@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatNumber } from "@/lib/format"
 import type { HourlyVote } from "@/lib/mock-data"
 
 interface VoteTrendChartProps {
@@ -71,7 +72,7 @@ export function VoteTrendChart({
                 fontSize: "12px",
               }}
               labelStyle={{ color: "hsl(var(--muted-foreground))" }}
-              formatter={(value: number) => [value.toLocaleString(), dataKey === "votes" ? "Votes" : "Cumulative"]}
+              formatter={(value: number) => [formatNumber(value), dataKey === "votes" ? "Votes" : "Cumulative"]}
             />
             <Area
               type="monotone"
